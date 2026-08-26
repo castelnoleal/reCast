@@ -2,16 +2,16 @@
 
 **reCast** is a clean-room, independently implemented toolkit for turning HTML, CSS, media and scripted motion into deterministic video.
 
-It is designed around a simple workflow:
+## Current architecture
 
-1. Create a normal HTML composition.
-2. Define its canvas, frame rate and duration in `recast.json`.
-3. Preview it in a browser.
-4. Render deterministic frames and encode them to MP4.
+reCast now has the first production-oriented rendering layer in place:
 
-## Status
+- **Core** — deterministic frame/time primitives and runtime injection.
+- **Renderer/Producer path** — Puppeteer-driven frame seeking plus FFmpeg encoding.
+- **CLI** — `init`, `check`, `preview`, `render`, `doctor`, and `upstream`.
+- **Compatibility layer** — tracks HyperFrames upstream revisions and deliberately mirrors documented behavior and interfaces without copying its implementation.
 
-The repository is being developed as an independent implementation. The current foundation includes the composition model, timing utilities, runtime injection, starter-project generator, configuration validation and preview server. The rendering engine, asset pipeline and studio are being added as separate layers.
+HyperFrames currently documents a frame-by-frame, seek-driven renderer, bundled/browser rendering, FFmpeg encoding, deterministic Docker mode, preview hot reload, multiple output formats, quality presets, GPU paths, and separate core/engine/producer/studio/player packages. reCast is implementing the equivalent architectural responsibilities independently and incrementally. citeturn0search1turn0search2turn0search5
 
 ## Quick start
 
@@ -22,43 +22,49 @@ node packages/cli/bin/recast.js init my-video
 cd my-video
 node ../packages/cli/bin/recast.js check
 node ../packages/cli/bin/recast.js preview
+node ../packages/cli/bin/recast.js render
 ```
 
-Open `http://localhost:4173`.
+## Deterministic rendering
 
-## Design goals
+Rendering evaluates one frame at a time and explicitly seeks Web Animations before capture. The renderer does not depend on realtime playback for frame timing. This follows the same important deterministic principle documented by HyperFrames while keeping the implementation independent. citeturn0search8
 
-- Independent implementation and terminology
-- Small, composable packages
-- Deterministic frame evaluation
-- Browser-native HTML/CSS authoring
-- Reusable animation adapters
-- Efficient browser/process reuse during rendering
-- Local-first development
-- Optional cloud rendering adapters later
-- Strong validation and tests
+## Upstream tracking
+
+Run:
+
+```bash
+npm run upstream
+```
+
+This checks the current HyperFrames `main` revision and latest release directly from GitHub. The CLI can use this as the compatibility checkpoint before development or rendering.
+
+**Important:** reCast is not intended to blindly copy upstream source. Automatic tracking should update compatibility metadata and trigger compatibility work; source changes should remain independently implemented and reviewed. This prevents an upstream change from silently breaking reCast.
 
 ## Roadmap
 
 - [x] Project foundation
-- [x] Composition/timing primitives
-- [x] Starter project generator
-- [x] Configuration validation
-- [x] Local preview server
-- [ ] Headless browser frame renderer
-- [ ] FFmpeg encoder pipeline
+- [x] Deterministic frame clock
+- [x] Headless browser capture
+- [x] FFmpeg MP4 encoding
+- [x] Dependency diagnostics
+- [x] HyperFrames upstream tracking
+- [ ] PNG/WebM/MOV/GIF output profiles
+- [ ] Audio extraction/mixing
 - [ ] Asset manifest and cache
 - [ ] Timeline/scene API
-- [ ] Animation adapters
-- [ ] Audio mixing
+- [ ] Animation adapters for GSAP/Lottie/Three.js/custom runtimes
+- [ ] Live-reload preview server
 - [ ] Studio UI
-- [ ] Registry/components
+- [ ] Embeddable player
+- [ ] Component/catalog registry
+- [ ] Docker deterministic render profile
+- [ ] Automated upstream compatibility regression suite
 - [ ] Cloud rendering adapters
-- [ ] Performance and regression suite
 
 ## Name
 
-`reCast` is the project name. It is intentionally distinct from the original project's branding and package namespace.
+`reCast` is intentionally distinct from the upstream project's branding and package namespace.
 
 ## License
 
