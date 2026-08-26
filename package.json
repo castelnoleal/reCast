@@ -1,0 +1,24 @@
+{
+  "name": "recast-monorepo",
+  "version": "0.1.0",
+  "description": "A clean-room HTML/CSS to deterministic video toolkit.",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node packages/cli/bin/recast.js preview",
+    "build": "npm run build:core && npm run build:cli",
+    "build:core": "tsc -p packages/core/tsconfig.json",
+    "build:cli": "tsc -p packages/cli/tsconfig.json",
+    "lint": "tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/cli/tsconfig.json --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "render": "node packages/cli/bin/recast.js render",
+    "preview": "node packages/cli/bin/recast.js preview",
+    "init": "node packages/cli/bin/recast.js init"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "@types/node": "^24.0.0"
+  }
+}
