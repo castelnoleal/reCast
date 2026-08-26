@@ -1,7 +1,7 @@
 {
   "name": "recast-monorepo",
-  "version": "0.1.0",
-  "description": "A clean-room HTML/CSS to deterministic video toolkit.",
+  "version": "0.2.0",
+  "description": "A clean-room HTML/CSS to deterministic video toolkit with a HyperFrames compatibility layer.",
   "private": true,
   "type": "module",
   "workspaces": ["packages/*"],
@@ -15,7 +15,12 @@
     "test": "node --test test/*.test.mjs",
     "render": "node packages/cli/bin/recast.js render",
     "preview": "node packages/cli/bin/recast.js preview",
-    "init": "node packages/cli/bin/recast.js init"
+    "init": "node packages/cli/bin/recast.js init",
+    "doctor": "node packages/cli/bin/recast.js doctor",
+    "upstream": "node packages/cli/bin/recast.js upstream"
+  },
+  "dependencies": {
+    "puppeteer": "^24.16.0"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
