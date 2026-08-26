@@ -1,0 +1,7 @@
+{
+  "name": "@recast/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": { "recast": "bin/recast.js" },
+  "dependencies": { "@recast/core": "0.1.0" }
+}
