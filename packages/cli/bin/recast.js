@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { spawn, execFileSync } from "node:child_process";
 
@@ -7,7 +7,7 @@ const [, , command = "help", ...args] = process.argv;
 const cwd = process.cwd();
 
 function help() {
-  console.log(`reCast 0.2.0\n\nHTML/CSS to deterministic video toolkit\n\nCommands:\n  recast init [directory]     Create a starter composition\n  recast preview [file]      Start a local preview server\n  recast render [file]       Render deterministic frames and encode video\n  recast check [file]        Validate composition metadata\n  recast doctor              Check local rendering dependencies\n  recast upstream            Check the latest HyperFrames revision`);
+  console.log(`reCast 0.2.0\n\nHTML/CSS to deterministic video toolkit\n\nCommands:\n  recast init [directory]     Create a starter composition\n  recast preview [file]      Start a local preview server\n  recast render [file]       Render deterministic frames and encode video\n  recast check [file]        Validate composition metadata\n  recast doctor              Check local rendering dependencies\n  recast upstream            Check and snapshot the latest HyperFrames revision`);
 }
 
 function loadConfig(file = "recast.json") {
@@ -22,6 +22,33 @@ function loadConfig(file = "recast.json") {
   return { config, path, entry };
 }
 
+async function syncUpstreamSnapshot({ quiet = true } = {}) {
+  try {
+    const headers = { accept: "application/vnd.github+json", "user-agent": "reCast-upstream-check" };
+    const branchRes = await fetch("https://api.github.com/repos/heygen-com/hyperframes/branches/main", { headers });
+    if (!branchRes.ok) throw new Error(`HTTP ${branchRes.status}`);
+    const branch = await branchRes.json();
+    const releaseRes = await fetch("https://api.github.com/repos/heygen-com/hyperframes/releases/latest", { headers });
+    const release = releaseRes.ok ? await releaseRes.json() : null;
+    mkdirSync(resolve(cwd, "compatibility"), { recursive: true });
+    const snapshot = {
+      upstream: "heygen-com/hyperframes",
+      branch: "main",
+      commit: branch.commit.sha,
+      latest_release: release?.tag_name ?? null,
+      release_published_at: release?.published_at ?? null,
+      checked_at: new Date().toISOString(),
+      policy: "Track documented behavior and compatibility surfaces; do not copy upstream implementation code."
+    };
+    writeFileSync(resolve(cwd, "compatibility/hyperframes-upstream.json"), JSON.stringify(snapshot, null, 2) + "\n");
+    if (!quiet) console.log(`HyperFrames main: ${snapshot.commit}${snapshot.latest_release ? ` | ${snapshot.latest_release}` : ""}`);
+    return snapshot;
+  } catch (error) {
+    if (!quiet) console.warn(`HyperFrames update check skipped: ${error.message}`);
+    return null;
+  }
+}
+
 function init() {
   const dir = resolve(cwd, args[0] ?? "recast-project");
   mkdirSync(dir, { recursive: true });
@@ -34,6 +61,7 @@ function init() {
 function check(file = "recast.json") { loadConfig(file); console.log(`✓ ${file} is valid`); }
 
 async function preview(file = "recast.json") {
+  await syncUpstreamSnapshot();
   const { entry } = loadConfig(file);
   const http = await import("node:http");
   const server = http.createServer((req, res) => {
@@ -47,6 +75,7 @@ function ffmpegAvailable() { try { execFileSync("ffmpeg", ["-version"], { stdio:
 function chromeAvailable() { try { execFileSync("node", ["-e", "import('puppeteer').then(async p=>{const b=await p.default.launch({headless:true});await b.close()}).catch(()=>process.exit(1))"], { stdio: "ignore" }); return true; } catch { return false; } }
 
 async function render(file = "recast.json") {
+  await syncUpstreamSnapshot();
   const { config, entry } = loadConfig(file);
   if (!ffmpegAvailable()) throw new Error("FFmpeg was not found. Install FFmpeg and run `recast doctor`.");
   const puppeteer = await import("puppeteer");
@@ -79,7 +108,10 @@ async function render(file = "recast.json") {
       ff.on("error", reject); ff.on("close", code => code === 0 ? resolvePromise() : reject(new Error(`FFmpeg exited with code ${code}`)));
     });
     console.log(`✓ Rendered ${output}`);
-  } finally { await browser.close(); }
+  } finally {
+    await browser.close();
+    try { rmSync(framesDir, { recursive: true, force: true }); } catch {}
+  }
 }
 
 async function doctor() {
@@ -87,18 +119,12 @@ async function doctor() {
   console.log(`FFmpeg: ${ffmpegAvailable() ? "available" : "missing"}`);
   console.log(`Puppeteer/Chromium: ${chromeAvailable() ? "available" : "missing (run npm install)"}`);
   console.log("Deterministic mode: frame-seeked capture");
-  console.log("HyperFrames compatibility: documentation/behavior tracking enabled");
+  await syncUpstreamSnapshot({ quiet: false });
 }
 
 async function upstream() {
-  const res = await fetch("https://api.github.com/repos/heygen-com/hyperframes/branches/main", { headers: { accept: "application/vnd.github+json", "user-agent": "reCast-upstream-check" } });
-  if (!res.ok) throw new Error(`Unable to query HyperFrames: HTTP ${res.status}`);
-  const data = await res.json();
-  const releaseRes = await fetch("https://api.github.com/repos/heygen-com/hyperframes/releases/latest", { headers: { accept: "application/vnd.github+json", "user-agent": "reCast-upstream-check" } });
-  const release = releaseRes.ok ? await releaseRes.json() : null;
-  console.log(`HyperFrames main: ${data.commit.sha}`);
-  if (release) console.log(`Latest release: ${release.tag_name}`);
-  console.log("reCast policy: mirror documented behavior and interfaces; keep implementation independent.");
+  const snapshot = await syncUpstreamSnapshot({ quiet: false });
+  if (!snapshot) process.exitCode = 1;
 }
 
 async function main() {
