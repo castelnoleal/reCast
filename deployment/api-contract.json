@@ -1,0 +1,22 @@
+{
+  "version": "1",
+  "endpoints": {
+    "POST /v1/render": {
+      "request": {
+        "composition": "validated reCast manifest",
+        "profile": "preview|standard|quality",
+        "output": "mp4|webm|png-sequence|gif|mov"
+      },
+      "response": {"jobId": "string", "status": "queued"}
+    },
+    "GET /v1/render/:jobId": {
+      "response": {"jobId": "string", "status": "queued|running|complete|failed", "progress": "number", "outputUrl": "string|null", "error": "string|null"}
+    }
+  },
+  "security": {
+    "authentication": "required",
+    "maxDurationSeconds": 300,
+    "maxPixels": 8294400,
+    "allowRemoteAssets": false
+  }
+}
