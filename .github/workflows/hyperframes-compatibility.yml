@@ -1,0 +1,33 @@
+name: HyperFrames compatibility check
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - name: Check upstream revision
+        run: node packages/cli/bin/recast.js upstream
+      - name: Commit changed compatibility snapshot
+        run: |
+          if git diff --quiet -- compatibility/hyperframes-upstream.json; then
+            echo 'No upstream change.'
+            exit 0
+          fi
+          git config user.name 'reCast Updater'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add compatibility/hyperframes-upstream.json
+          git commit -m 'chore: refresh HyperFrames compatibility snapshot'
+          git push
