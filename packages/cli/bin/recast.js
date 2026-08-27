@@ -31,15 +31,7 @@ async function syncUpstreamSnapshot({ quiet = true } = {}) {
     const releaseRes = await fetch("https://api.github.com/repos/heygen-com/hyperframes/releases/latest", { headers });
     const release = releaseRes.ok ? await releaseRes.json() : null;
     mkdirSync(resolve(cwd, "compatibility"), { recursive: true });
-    const snapshot = {
-      upstream: "heygen-com/hyperframes",
-      branch: "main",
-      commit: branch.commit.sha,
-      latest_release: release?.tag_name ?? null,
-      release_published_at: release?.published_at ?? null,
-      checked_at: new Date().toISOString(),
-      policy: "Track documented behavior and compatibility surfaces; do not copy upstream implementation code."
-    };
+    const snapshot = { upstream: "heygen-com/hyperframes", branch: "main", commit: branch.commit.sha, latest_release: release?.tag_name ?? null, release_published_at: release?.published_at ?? null, checked_at: new Date().toISOString(), policy: "Track documented behavior and compatibility surfaces; do not copy upstream implementation code." };
     writeFileSync(resolve(cwd, "compatibility/hyperframes-upstream.json"), JSON.stringify(snapshot, null, 2) + "\n");
     if (!quiet) console.log(`HyperFrames main: ${snapshot.commit}${snapshot.latest_release ? ` | ${snapshot.latest_release}` : ""}`);
     return snapshot;
@@ -72,7 +64,7 @@ async function preview(file = "recast.json") {
 }
 
 function ffmpegAvailable() { try { execFileSync("ffmpeg", ["-version"], { stdio: "ignore" }); return true; } catch { return false; } }
-function chromeAvailable() { try { execFileSync("node", ["-e", "import('puppeteer').then(async p=>{const b=await p.default.launch({headless:true});await b.close()}).catch(()=>process.exit(1))"], { stdio: "ignore" }); return true; } catch { return false; } }
+function chromeAvailable() { try { execFileSync("node", ["-e", "import('puppeteer').then(async p=>{const b=await p.default.launch({headless:true,executablePath:process.env.PUPPETEER_EXECUTABLE_PATH||undefined,args:process.env.PUPPETEER_NO_SANDBOX==='1'?['--no-sandbox','--disable-setuid-sandbox']:[]});await b.close()}).catch(()=>process.exit(1))"], { stdio: "ignore" }); return true; } catch { return false; } }
 
 async function render(file = "recast.json") {
   await syncUpstreamSnapshot();
@@ -86,55 +78,24 @@ async function render(file = "recast.json") {
   const fps = config.fps;
   const total = Math.ceil(config.duration * fps);
   const output = resolve(cwd, config.render?.output ?? `renders/${config.id ?? "recast"}.mp4`);
-  const browser = await puppeteer.default.launch({ headless: true });
+  const browser = await puppeteer.default.launch({ headless: true, executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, args: process.env.PUPPETEER_NO_SANDBOX === "1" ? ["--no-sandbox", "--disable-setuid-sandbox"] : [] });
   try {
     const page = await browser.newPage({ viewport: { width: config.width, height: config.height }, deviceScaleFactor: 1 });
     await page.goto(`file://${entry}`, { waitUntil: "networkidle0" });
     await page.evaluate(({ fps }) => { window.__reCastRender = true; window.__reCastFPS = fps; }, { fps });
     for (let frame = 0; frame < total; frame++) {
       const time = frame / fps;
-      await page.evaluate((t) => {
-        document.documentElement.style.setProperty('--recast-time', `${t}s`);
-        window.__reCast = { frame: Math.round(t * window.__reCastFPS), fps: window.__reCastFPS, time: t };
-        for (const a of document.getAnimations()) { try { a.pause(); a.currentTime = t * 1000; } catch {} }
-        window.dispatchEvent(new CustomEvent('recast:frame', { detail: window.__reCast }));
-      }, time);
+      await page.evaluate((t) => { document.documentElement.style.setProperty("--recast-time", `${t}s`); window.__reCast = { frame: Math.round(t * window.__reCastFPS), fps: window.__reCastFPS, time: t }; for (const a of document.getAnimations()) { try { a.pause(); a.currentTime = t * 1000; } catch {} } window.dispatchEvent(new CustomEvent("recast:frame", { detail: window.__reCast })); }, time);
       await page.screenshot({ path: resolve(framesDir, `frame-${String(frame).padStart(7, "0")}.png`), type: "png" });
       if ((frame + 1) % Math.max(1, Math.floor(fps)) === 0) process.stdout.write(`\rRendering ${frame + 1}/${total} frames`);
     }
     process.stdout.write("\nEncoding video...\n");
-    await new Promise((resolvePromise, reject) => {
-      const ff = spawn("ffmpeg", ["-y", "-framerate", String(fps), "-i", resolve(framesDir, "frame-%07d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", output], { stdio: "inherit" });
-      ff.on("error", reject); ff.on("close", code => code === 0 ? resolvePromise() : reject(new Error(`FFmpeg exited with code ${code}`)));
-    });
+    await new Promise((resolvePromise, reject) => { const ff = spawn("ffmpeg", ["-y", "-framerate", String(fps), "-i", resolve(framesDir, "frame-%07d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", output], { stdio: "inherit" }); ff.on("error", reject); ff.on("close", code => code === 0 ? resolvePromise() : reject(new Error(`FFmpeg exited with code ${code}`))); });
     console.log(`✓ Rendered ${output}`);
-  } finally {
-    await browser.close();
-    try { rmSync(framesDir, { recursive: true, force: true }); } catch {}
-  }
+  } finally { await browser.close(); try { rmSync(framesDir, { recursive: true, force: true }); } catch {} }
 }
 
-async function doctor() {
-  console.log(`Node ${process.version}`);
-  console.log(`FFmpeg: ${ffmpegAvailable() ? "available" : "missing"}`);
-  console.log(`Puppeteer/Chromium: ${chromeAvailable() ? "available" : "missing (run npm install)"}`);
-  console.log("Deterministic mode: frame-seeked capture");
-  await syncUpstreamSnapshot({ quiet: false });
-}
-
-async function upstream() {
-  const snapshot = await syncUpstreamSnapshot({ quiet: false });
-  if (!snapshot) process.exitCode = 1;
-}
-
-async function main() {
-  if (["help", "--help", "-h"].includes(command)) return help();
-  if (command === "init") return init();
-  if (command === "check") return check(args[0]);
-  if (command === "preview") return preview(args[0]);
-  if (command === "render") return render(args[0]);
-  if (command === "doctor") return doctor();
-  if (command === "upstream") return upstream();
-  help();
-}
+async function doctor() { console.log(`Node ${process.version}`); console.log(`FFmpeg: ${ffmpegAvailable() ? "available" : "missing"}`); console.log(`Puppeteer/Chromium: ${chromeAvailable() ? "available" : "missing (run npm install)"}`); console.log("Deterministic mode: frame-seeked capture"); await syncUpstreamSnapshot({ quiet: false }); }
+async function upstream() { const snapshot = await syncUpstreamSnapshot({ quiet: false }); if (!snapshot) process.exitCode = 1; }
+async function main() { if (["help", "--help", "-h"].includes(command)) return help(); if (command === "init") return init(); if (command === "check") return check(args[0]); if (command === "preview") return preview(args[0]); if (command === "render") return render(args[0]); if (command === "doctor") return doctor(); if (command === "upstream") return upstream(); help(); }
 main().catch(error => { console.error(`reCast: ${error.message}`); process.exitCode = 1; });
