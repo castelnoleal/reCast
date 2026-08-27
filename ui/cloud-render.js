@@ -8,6 +8,10 @@
     return originalLoadPreview ? originalLoadPreview(html) : undefined;
   };
 
+  function getToken() {
+    return window.RECAST_API_TOKEN || localStorage.getItem("recast.renderToken") || prompt("Enter your reCast render token. It is stored only in this browser.");
+  }
+
   window.renderProject = async function() {
     const w = Number(document.getElementById("w")?.value || 1920);
     const h = Number(document.getElementById("h")?.value || 1080);
@@ -17,11 +21,9 @@
     if (!html) return alert("Open or create a composition first.");
     if (![w, h, fps, duration].every(Number.isFinite) || w <= 0 || h <= 0 || fps <= 0 || duration <= 0) return alert("Invalid composition settings.");
 
-    const token = window.RECAST_API_TOKEN;
-    if (!token) {
-      alert("Cloud rendering is not configured for this Studio yet. Use the local `recast render` command, or configure RECAST_API_TOKEN for the hosted Studio.");
-      return;
-    }
+    const token = getToken();
+    if (!token) return alert("Cloud rendering requires a render token. Use local rendering if you do not have one.");
+    localStorage.setItem("recast.renderToken", token);
 
     status("Submitting cloud render…");
     log("Submitting render job to reCast Cloud");
