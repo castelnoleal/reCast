@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>reCast Studio</title>
+<style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#080b12}body{overflow:hidden}</style>
+</head>
+<body>
+<iframe id="studio" src="./index.html" title="reCast Studio"></iframe>
+<script>
+const frame=document.getElementById('studio');
+frame.addEventListener('load',()=>{
+  const script=frame.contentDocument.createElement('script');
+  script.src='./cloud-render.js';
+  frame.contentDocument.body.appendChild(script);
+});
+</script>
+</body>
+</html>
