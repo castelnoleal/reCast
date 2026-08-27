@@ -13,7 +13,7 @@ npx wrangler secret put RECAST_API_TOKEN
 npx wrangler deploy
 ```
 
-Cloudflare Containers builds the Dockerfile and rolls out the container when `wrangler deploy` is run. Containers require the Workers Paid plan. citehttps://developers.cloudflare.com/containers/deploy/
+Cloudflare Containers builds the Dockerfile and rolls out the container when `wrangler deploy` is run. Containers are available on the Workers Paid plan.
 
 ## Local development
 
