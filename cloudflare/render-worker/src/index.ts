@@ -13,6 +13,14 @@ export class RecastRenderContainer extends Container {
     NODE_ENV: "production",
     PUPPETEER_EXECUTABLE_PATH: "/usr/bin/chromium"
   };
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    this.envVars = {
+      ...this.envVars,
+      RECAST_CONTAINER_TOKEN: env.RECAST_API_TOKEN ?? ""
+    };
+  }
 }
 
 function unauthorized() {
@@ -29,13 +37,8 @@ export default {
     if (request.headers.get("authorization") !== `Bearer ${token}`) return unauthorized();
 
     const url = new URL(request.url);
-    if (url.pathname === "/health") {
-      return Response.json({ ok: true, service: "reCast render API" });
-    }
-
-    if (!url.pathname.startsWith("/v1/render")) {
-      return new Response("Not found", { status: 404 });
-    }
+    if (url.pathname === "/health") return Response.json({ ok: true, service: "reCast render API" });
+    if (!url.pathname.startsWith("/v1/render")) return new Response("Not found", { status: 404 });
 
     let jobId = url.pathname.match(/^\/v1\/render\/([^/]+)/)?.[1];
     if (request.method === "POST" && url.pathname === "/v1/render") {
