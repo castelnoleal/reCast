@@ -2,8 +2,13 @@
   "name": "@recast/cloudflare-render-worker",
   "private": true,
   "type": "module",
+  "scripts": {
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
   "dependencies": {
-    "@cloudflare/containers": "^0.0.24"
+    "@cloudflare/containers": "^0.3.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "latest",
