@@ -1,0 +1,13 @@
+{
+  "name": "@recast/cloudflare-render-worker",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@cloudflare/containers": "^0.0.24"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "wrangler": "latest",
+    "typescript": "^5.9.0"
+  }
+}
