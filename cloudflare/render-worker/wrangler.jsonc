@@ -1,0 +1,41 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "recast-render-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "containers": [
+    {
+      "class_name": "RecastRenderContainer",
+      "image": "./Dockerfile",
+      "max_instances": 10,
+      "instance_type": "basic",
+      "rollout_active_grace_period": 300,
+      "rollout_step_percentage": [10, 100]
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "RECAST_RENDER",
+        "class_name": "RecastRenderContainer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RecastRenderContainer"]
+    }
+  ],
+  "vars": {
+    "MAX_RENDER_SECONDS": "300",
+    "MAX_PIXELS": "8294400"
+  },
+  "routes": [
+    {
+      "pattern": "api.recast.castelmei.com",
+      "custom_domain": true
+    }
+  ]
+}
