@@ -1,0 +1,48 @@
+name: Deploy reCast Cloud Renderer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/render-worker/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-recast-cloud.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: recast-cloud-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: cloudflare/render-worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Typecheck Worker
+        run: npm run check
+
+      - name: Deploy Worker and Container
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare/render-worker
+          command: deploy --containers-rollout=immediate
