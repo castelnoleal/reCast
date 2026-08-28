@@ -13,15 +13,13 @@ export class RecastRenderContainer extends Container {
   enableInternet = false;
   envVars = {
     NODE_ENV: "production",
-    PUPPETEER_EXECUTABLE_PATH: "/usr/bin/chromium"
+    PUPPETEER_EXECUTABLE_PATH: "/usr/bin/chromium",
+    RECAST_CONTAINER_TOKEN: ""
   };
 
   constructor(ctx: DurableObjectState, env: Env) {
-    super(ctx, env);
-    this.envVars = {
-      ...this.envVars,
-      RECAST_CONTAINER_TOKEN: env.RECAST_API_TOKEN ?? ""
-    };
+    super(ctx as DurableObjectState<{}>, env);
+    this.envVars.RECAST_CONTAINER_TOKEN = env.RECAST_API_TOKEN ?? "";
   }
 }
 
