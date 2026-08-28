@@ -5,6 +5,8 @@ export interface Env {
   RECAST_API_TOKEN?: string;
 }
 
+const ALLOWED_ORIGIN = "https://recast.castelmei.com";
+
 export class RecastRenderContainer extends Container {
   defaultPort = 8080;
   sleepAfter = "30m";
@@ -23,22 +25,56 @@ export class RecastRenderContainer extends Container {
   }
 }
 
-function unauthorized() {
-  return new Response(JSON.stringify({ error: "Unauthorized" }), {
-    status: 401,
-    headers: { "content-type": "application/json" }
+function json(body: unknown, status = 200, extra: HeadersInit = {}) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "access-control-allow-origin": ALLOWED_ORIGIN,
+      "access-control-allow-methods": "GET,POST,OPTIONS",
+      "access-control-allow-headers": "authorization,content-type",
+      "cache-control": "no-store",
+      ...extra
+    }
   });
+}
+
+function unauthorized() {
+  return json({ error: "Unauthorized" }, 401);
+}
+
+function cors(response: Response) {
+  const headers = new Headers(response.headers);
+  headers.set("access-control-allow-origin", ALLOWED_ORIGIN);
+  headers.set("access-control-allow-methods", "GET,POST,OPTIONS");
+  headers.set("access-control-allow-headers", "authorization,content-type");
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const token = env.RECAST_API_TOKEN;
-    if (!token) return new Response(JSON.stringify({ error: "Render API is not configured" }), { status: 503, headers: { "content-type": "application/json" } });
-    if (request.headers.get("authorization") !== `Bearer ${token}`) return unauthorized();
-
     const url = new URL(request.url);
-    if (url.pathname === "/health") return Response.json({ ok: true, service: "reCast render API" });
-    if (!url.pathname.startsWith("/v1/render")) return new Response("Not found", { status: 404 });
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "access-control-allow-origin": ALLOWED_ORIGIN,
+          "access-control-allow-methods": "GET,POST,OPTIONS",
+          "access-control-allow-headers": "authorization,content-type",
+          "access-control-max-age": "86400"
+        }
+      });
+    }
+
+    if (url.pathname === "/health") {
+      return json({ ok: true, service: "reCast render API", configured: Boolean(env.RECAST_API_TOKEN) });
+    }
+
+    const token = env.RECAST_API_TOKEN;
+    if (!token) return json({ error: "Render API is not configured" }, 503);
+    if (request.headers.get("authorization") !== `Bearer ${token}`) return unauthorized();
+    if (!url.pathname.startsWith("/v1/render")) return json({ error: "Not found" }, 404);
 
     let jobId = url.pathname.match(/^\/v1\/render\/([^/]+)/)?.[1];
     if (request.method === "POST" && url.pathname === "/v1/render") {
@@ -47,13 +83,16 @@ export default {
       const forwarded = new Request(new URL("/render", request.url), request);
       forwarded.headers.set("x-recast-job-id", jobId);
       forwarded.headers.set("x-recast-token", token);
-      return container.fetch(forwarded);
+      return cors(await container.fetch(forwarded));
     }
 
-    if (!jobId) return new Response("Not found", { status: 404 });
+    if (!jobId) return json({ error: "Not found" }, 404);
     const container = getContainer(env.RECAST_RENDER, jobId);
     const path = url.pathname.endsWith("/output") ? "/output" : "/status";
-    const forwarded = new Request(new URL(path, request.url), { method: "GET", headers: { "x-recast-token": token, "x-recast-job-id": jobId } });
-    return container.fetch(forwarded);
+    const forwarded = new Request(new URL(path, request.url), {
+      method: "GET",
+      headers: { "x-recast-token": token, "x-recast-job-id": jobId }
+    });
+    return cors(await container.fetch(forwarded));
   }
 };
