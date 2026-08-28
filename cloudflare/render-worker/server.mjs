@@ -36,6 +36,32 @@ function safeId(value) {
   return String(value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80) || randomUUID();
 }
 
+function expectedFrameCount(config) {
+  return Math.round(Number(config.fps) * Number(config.duration));
+}
+
+async function probeArtifact(file, config) {
+  const expectedFrames = expectedFrameCount(config);
+  const expectedDuration = Number(config.duration);
+  const args = [
+    "-v", "error", "-select_streams", "v:0",
+    "-count_frames", "-show_entries", "stream=nb_read_frames,duration",
+    "-of", "json", file
+  ];
+  const child = spawn("ffprobe", args, { stdio: ["ignore", "pipe", "pipe"] });
+  let stdout = "", stderr = "";
+  child.stdout.on("data", chunk => { stdout += chunk; });
+  child.stderr.on("data", chunk => { stderr += chunk; });
+  const code = await new Promise(resolveCode => child.on("close", resolveCode));
+  if (code !== 0) throw new Error(stderr.trim() || "Unable to validate render artifact");
+  const stream = JSON.parse(stdout).streams?.[0];
+  const frames = Number(stream?.nb_read_frames);
+  const duration = Number(stream?.duration);
+  if (!Number.isFinite(frames) || frames !== expectedFrames) throw new Error(`Render artifact frame count mismatch: expected ${expectedFrames}, received ${frames}`);
+  if (!Number.isFinite(duration) || Math.abs(duration - expectedDuration) > (1 / Number(config.fps) + 0.02)) throw new Error(`Render artifact duration mismatch: expected ${expectedDuration}s, received ${duration}s`);
+  return { frames, duration };
+}
+
 async function renderJob(job) {
   const dir = join(ROOT, safeId(job.id));
   const configPath = join(dir, "recast.json");
@@ -64,7 +90,9 @@ async function renderJob(job) {
     if (code !== 0) throw new Error(stderr.trim() || `Renderer exited with code ${code}`);
     const output = resolve(dir, job.config.render?.output || `renders/${job.config.id || "recast"}.mp4`);
     const info = await stat(output);
-    jobs.set(job.id, { ...jobs.get(job.id), status: "complete", progress: 100, output: output, size: info.size, completedAt: new Date().toISOString() });
+    if (!info.isFile() || info.size <= 0) throw new Error("Render produced an invalid or empty artifact");
+    const artifact = await probeArtifact(output, job.config);
+    jobs.set(job.id, { ...jobs.get(job.id), status: "complete", progress: 100, output, size: info.size, artifact, completedAt: new Date().toISOString() });
   } catch (error) {
     jobs.set(job.id, { ...jobs.get(job.id), status: "failed", progress: 0, error: error instanceof Error ? error.message : String(error) });
   }
@@ -83,12 +111,13 @@ const server = http.createServer(async (req, res) => {
       const config = payload.config || {};
       const width = Number(config.width), height = Number(config.height), fps = Number(config.fps), duration = Number(config.duration);
       if (![width, height, fps, duration].every(Number.isFinite) || width <= 0 || height <= 0 || fps <= 0 || duration <= 0) return json(res, 400, { error: "Invalid render dimensions, fps or duration" });
+      if (!Number.isInteger(fps) || !Number.isInteger(expectedFrameCount({ fps, duration }))) return json(res, 400, { error: "Render fps and duration must resolve to a whole deterministic frame count" });
       if (width * height > 8294400 || duration > 300) return json(res, 400, { error: "Render exceeds configured resource limits" });
       const id = safeId(req.headers["x-recast-job-id"] || randomUUID());
       const job = { id, html: payload.html, config: { ...config, width, height, fps, duration, entry: "index.html", render: { format: "mp4", ...(config.render || {}), output: `renders/${id}.mp4` } } };
       jobs.set(id, { id, status: "queued", progress: 0, createdAt: new Date().toISOString() });
       void renderJob(job);
-      return json(res, 202, { jobId: id, status: "queued" });
+      return json(res, 202, { jobId: id, status: "queued", expectedFrames: expectedFrameCount(job.config) });
     }
 
     const match = url.pathname.match(/^\/(status|output)$/);
