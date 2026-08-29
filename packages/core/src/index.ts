@@ -7,21 +7,27 @@ export interface Composition {
   height: number;
   fps: number;
   duration: number;
+  playbackRate?: number;
   html: string;
   css?: string;
   variables?: Record<string, string | number | boolean>;
 }
 export interface FrameRequest { composition: Composition; frame: number; }
 
-export function frameToTime(frame: number, fps: number): Time {
+export function validatePlaybackRate(playbackRate = 1): number {
+  if (!Number.isFinite(playbackRate) || playbackRate <= 0) throw new Error("playbackRate must be greater than zero");
+  return playbackRate;
+}
+
+export function frameToTime(frame: number, fps: number, playbackRate = 1): Time {
   if (!Number.isFinite(frame) || frame < 0) throw new Error("frame must be a non-negative finite number");
   if (!Number.isFinite(fps) || fps <= 0) throw new Error("fps must be greater than zero");
-  return Math.floor(frame) / fps;
+  return (Math.floor(frame) / fps) * validatePlaybackRate(playbackRate);
 }
-export function timeToFrame(time: Time, fps: number): number {
+export function timeToFrame(time: Time, fps: number, playbackRate = 1): number {
   if (!Number.isFinite(time) || time < 0) throw new Error("time must be a non-negative finite number");
   if (!Number.isFinite(fps) || fps <= 0) throw new Error("fps must be greater than zero");
-  return Math.round(time * fps);
+  return Math.round((time * fps) / validatePlaybackRate(playbackRate));
 }
 export function totalFrames(duration: number, fps: number): number {
   if (!Number.isFinite(duration) || duration < 0) throw new Error("duration must be non-negative");
@@ -43,8 +49,8 @@ export function easeInOut(progress: number): number {
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>\"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '\"': "&quot;", "'": "&#39;" }[c]!));
 }
-export function injectRuntime(html: string, frame: number, fps: number): string {
-  const time = frameToTime(frame, fps);
-  const runtime = `<script>window.__reCast={frame:${Math.floor(frame)},fps:${fps},time:${time}};<\/script>`;
+export function injectRuntime(html: string, frame: number, fps: number, playbackRate = 1): string {
+  const time = frameToTime(frame, fps, playbackRate);
+  const runtime = `<script>window.__reCast={frame:${Math.floor(frame)},fps:${fps},time:${time},playbackRate:${validatePlaybackRate(playbackRate)}};<\/script>`;
   return html.includes("</head>") ? html.replace("</head>", runtime + "</head>") : runtime + html;
 }
