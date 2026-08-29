@@ -17,6 +17,7 @@ function loadConfig(file = "recast.json") {
   try { config = JSON.parse(readFileSync(path, "utf8")); } catch { throw new Error(`${file} is not valid JSON`); }
   for (const key of ["width", "height", "fps", "duration", "entry"]) if (config[key] == null) throw new Error(`Missing configuration field: ${key}`);
   if (![config.width, config.height, config.fps, config.duration].every(Number.isFinite) || config.width <= 0 || config.height <= 0 || config.fps <= 0 || config.duration <= 0) throw new Error("Dimensions, fps and duration must be positive finite numbers");
+  if (config.playbackRate != null && (!Number.isFinite(config.playbackRate) || config.playbackRate <= 0)) throw new Error("playbackRate must be greater than zero");
   const entry = resolve(dirname(path), config.entry);
   if (!existsSync(entry)) throw new Error(`Entry file does not exist: ${config.entry}`);
   return { config, path, entry };
@@ -46,7 +47,7 @@ function init() {
   mkdirSync(dir, { recursive: true });
   const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>reCast Composition</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;color:white;font-family:system-ui}main{width:100vw;height:100vh;display:grid;place-items:center}.title{font-size:72px;font-weight:800;animation:rise 1s both}@keyframes rise{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}</style></head><body><main><div class="title">Hello from reCast</div></main></body></html>`;
   writeFileSync(resolve(dir, "index.html"), html);
-  writeFileSync(resolve(dir, "recast.json"), JSON.stringify({ id: "starter", width: 1920, height: 1080, fps: 30, duration: 5, entry: "index.html", render: { format: "mp4", quality: "standard" } }, null, 2) + "\n");
+  writeFileSync(resolve(dir, "recast.json"), JSON.stringify({ id: "starter", width: 1920, height: 1080, fps: 30, duration: 5, playbackRate: 1, entry: "index.html", render: { format: "mp4", quality: "standard" } }, null, 2) + "\n");
   console.log(`Created ${dir}`);
 }
 
@@ -76,16 +77,42 @@ async function render(file = "recast.json") {
   mkdirSync(framesDir, { recursive: true });
   mkdirSync(outDir, { recursive: true });
   const fps = config.fps;
+  const playbackRate = config.playbackRate ?? 1;
   const total = Math.ceil(config.duration * fps);
   const output = resolve(cwd, config.render?.output ?? `renders/${config.id ?? "recast"}.mp4`);
   const browser = await puppeteer.default.launch({ headless: true, executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, args: process.env.PUPPETEER_NO_SANDBOX === "1" ? ["--no-sandbox", "--disable-setuid-sandbox"] : [] });
   try {
     const page = await browser.newPage({ viewport: { width: config.width, height: config.height }, deviceScaleFactor: 1 });
     await page.goto(`file://${entry}`, { waitUntil: "networkidle0" });
-    await page.evaluate(({ fps }) => { window.__reCastRender = true; window.__reCastFPS = fps; }, { fps });
+    await page.evaluate(({ fps, playbackRate }) => {
+      window.__reCastRender = true;
+      window.__reCastFPS = fps;
+      window.__reCastPlaybackRate = playbackRate;
+      const media = [...document.querySelectorAll("audio,video")];
+      for (let index = 0; index < media.length; index++) {
+        const element = media[index];
+        if (!element.dataset.recastRenderId) element.dataset.recastRenderId = `media-${index + 1}`;
+        element.pause();
+        element.playbackRate = Number(element.dataset.recastPlaybackRate || element.getAttribute("data-playback-rate") || 1);
+      }
+    }, { fps, playbackRate });
     for (let frame = 0; frame < total; frame++) {
       const time = frame / fps;
-      await page.evaluate((t) => { document.documentElement.style.setProperty("--recast-time", `${t}s`); window.__reCast = { frame: Math.round(t * window.__reCastFPS), fps: window.__reCastFPS, time: t }; for (const a of document.getAnimations()) { try { a.pause(); a.currentTime = t * 1000; } catch {} } window.dispatchEvent(new CustomEvent("recast:frame", { detail: window.__reCast })); }, time);
+      const authoredTime = time * playbackRate;
+      await page.evaluate(({ frame, time, authoredTime, fps, playbackRate }) => {
+        document.documentElement.style.setProperty("--recast-time", `${authoredTime}s`);
+        window.__reCast = { frame, fps, time: authoredTime, timelineTime: time, playbackRate };
+        for (const a of document.getAnimations()) { try { a.pause(); a.currentTime = authoredTime * 1000; } catch {} }
+        for (const media of document.querySelectorAll("audio,video")) {
+          const rate = Number(media.dataset.recastPlaybackRate || media.getAttribute("data-playback-rate") || media.playbackRate || 1);
+          const start = Number(media.dataset.recastStart || media.getAttribute("data-start") || 0);
+          const localTime = Math.max(0, (authoredTime - start) * rate);
+          media.playbackRate = rate;
+          if (Number.isFinite(localTime) && media.readyState >= 1) { try { media.currentTime = localTime; } catch {} }
+          media.dispatchEvent(new CustomEvent("recast:media-time", { detail: { id: media.dataset.recastRenderId, time: localTime, rate } }));
+        }
+        window.dispatchEvent(new CustomEvent("recast:frame", { detail: window.__reCast }));
+      }, { frame, time, authoredTime, fps, playbackRate });
       await page.screenshot({ path: resolve(framesDir, `frame-${String(frame).padStart(7, "0")}.png`), type: "png" });
       if ((frame + 1) % Math.max(1, Math.floor(fps)) === 0) process.stdout.write(`\rRendering ${frame + 1}/${total} frames`);
     }
