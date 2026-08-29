@@ -1,0 +1,15 @@
+{
+  "upstream": "heygen-com/hyperframes",
+  "branch": "main",
+  "commit": "3dc18562323c9dd7dfa1f9416d90708677f3652b",
+  "latest_release": "v0.8.17",
+  "release_commit": "10a90688e7bf37a95225cfb324665b31db101063",
+  "release_published_at": "2026-08-28T00:44:38Z",
+  "checked_at": "2026-08-29T05:16:00+08:00",
+  "compatibility_changes": [
+    "Authored playback rates are applied when seeking deterministic snapshots.",
+    "Media elements receive stable render identities so nested or empty-source media can be paired deterministically.",
+    "Nested media timing is resolved against local authored time instead of only global timeline time."
+  ],
+  "policy": "Track documented behavior and compatibility surfaces; do not copy upstream implementation code."
+}
