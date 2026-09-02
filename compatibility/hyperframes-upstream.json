@@ -1,17 +1,16 @@
 {
   "upstream": "heygen-com/hyperframes",
   "branch": "main",
-  "commit": "0e558d591658afcba59a84d53d75112b963a9f0a",
-  "latest_release": "v0.8.20",
-  "release_commit": "724796e2f03bad42fb3f698aff91179051b20609",
-  "release_published_at": "2026-08-30T04:35:17Z",
-  "previous_baseline": "3dc18562323c9dd7dfa1f9416d90708677f3652b",
+  "commit": "c0887b650d433ecec39a2ea7efa0674b63b103fe",
+  "latest_release": "v0.8.24",
+  "release_commit": "c0887b650d433ecec39a2ea7efa0674b63b103fe",
+  "release_published_at": "2026-09-02T01:59:16Z",
+  "previous_baseline": "0e558d591658afcba59a84d53d75112b963a9f0a",
   "compatibility_changes": [
-    "Studio exposes shared selection and playhead control for agent-driven workflows through studio_select and studio_seek; selection is shared state and seek reports the actual landed position.",
-    "Studio render requests use the active composition as the default render target, with an explicit composition target taking precedence.",
-    "Composition activation is path-agnostic rather than limited to a compositions/ directory convention.",
-    "Studio save/render failure reporting preserves operation, file/composition, HTTP status when available, and timestamp for diagnosis and grouping.",
-    "HyperFrames v0.8.20 documents corrected Studio save-failure telemetry and v0.8.19 introduced active-composition export behavior; reCast mirrors the compatibility surfaces independently."
+    "HyperFrames v0.8.22 reports host-interrupted FFmpeg work as retryable rather than a terminal render failure; reCast preserves an explicit retryable failure field for compatible producer diagnostics.",
+    "HyperFrames v0.8.23 adds caption-zone overlap checks and safer timeline linting; these are authoring/lint surfaces and do not require a rendering-runtime change in reCast's current HTML-only Studio path.",
+    "HyperFrames v0.8.24 transports bounded extraction failure evidence across service boundaries without exposing signed URLs; reCast independently sanitizes render failure evidence by bounding text, redacting signed URL patterns, and retaining stage/code/message/retryable metadata.",
+    "The compatibility implementation mirrors documented behavior and interfaces only; no upstream implementation code is copied."
   ],
   "policy": "Track documented behavior and compatibility surfaces; do not copy upstream implementation code."
 }
