@@ -14,6 +14,37 @@ export interface Composition {
 }
 export interface FrameRequest { composition: Composition; frame: number; }
 
+/** Safe, bounded render evidence suitable for crossing service/UI boundaries. */
+export interface RenderFailureEvidence {
+  stage?: string;
+  code?: string;
+  message?: string;
+  retryable?: boolean;
+  details?: string;
+}
+
+const SIGNED_URL = /https?:\/\/[^\s"']+(?:[?&](?:X-Amz-|Signature=|token=|sig=)|[?&](?:Expires=|Policy=))/gi;
+
+/**
+ * Mirrors the producer compatibility contract: keep useful extraction evidence,
+ * but never leak signed URLs or unbounded diagnostics across a service boundary.
+ */
+export function sanitizeRenderFailureEvidence(input: unknown, maxLength = 1024): RenderFailureEvidence {
+  const source = input && typeof input === "object" ? input as Record<string, unknown> : { message: String(input ?? "") };
+  const clean = (value: unknown) => {
+    if (typeof value !== "string") return undefined;
+    return value.replace(SIGNED_URL, "[redacted-url]").replace(/\s+/g, " ").trim().slice(0, Math.max(0, maxLength));
+  };
+  const evidence: RenderFailureEvidence = {
+    stage: clean(source.stage),
+    code: clean(source.code),
+    message: clean(source.message),
+    details: clean(source.details ?? source.stderr ?? source.evidence),
+    retryable: typeof source.retryable === "boolean" ? source.retryable : undefined
+  };
+  return Object.fromEntries(Object.entries(evidence).filter(([, value]) => value !== undefined)) as RenderFailureEvidence;
+}
+
 export function validatePlaybackRate(playbackRate = 1): number {
   if (!Number.isFinite(playbackRate) || playbackRate <= 0) throw new Error("playbackRate must be greater than zero");
   return playbackRate;
