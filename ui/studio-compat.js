@@ -13,4 +13,20 @@
   window.studio_seek = window.studio_seek || (async seconds => { const requested=Number(seconds); if(!Number.isFinite(requested)) throw new Error("studio_seek requires a finite time in seconds."); const landed=window.seek(requested); return {requested,landed,selectedHandle}; });
   window.setActiveComposition = window.setActiveComposition || (path => { activeComposition=String(path??"").trim()||null; window.dispatchEvent(new CustomEvent("recast:composition-change",{detail:{path:activeComposition}})); return activeComposition; });
   window.recastStudioState = window.recastStudioState || (() => ({selectedHandle,currentTime:Number($("time")?.textContent?.replace(/s$/,""))||0,activeComposition,previewMounted:!!$("preview")?.contentWindow}));
+
+  // Compatibility surface for live agent/source edits: when paused, rebind the current preview and
+  // immediately restore the landed playhead so timed layers match the intended frame without a scrub.
+  window.recastStudioApplyLiveEdit = async (html, detail = {}) => {
+    const frame = $("preview");
+    if (!frame) throw new Error("Studio preview is unavailable.");
+    const before = Number($("time")?.textContent?.replace(/s$/,"")) || 0;
+    const wasPaused = detail.paused !== false && !detail.playing;
+    if (typeof window.loadPreview === "function") window.loadPreview(String(html ?? ""));
+    else frame.srcdoc = String(html ?? "");
+    await new Promise(resolve => frame.addEventListener("load", resolve, {once:true}));
+    const landed = window.seek(before);
+    frame.contentWindow?.postMessage({type:"recast:live-edit",time:landed,selectedHandle},"*");
+    window.dispatchEvent(new CustomEvent("recast:live-edit",{detail:{...detail,time:landed,paused:wasPaused}}));
+    return {applied:true,landed,paused:wasPaused};
+  };
 })();
