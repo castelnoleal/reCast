@@ -86,22 +86,15 @@
   window.timelineSeek=e=>{const r=$("track")?.getBoundingClientRect();if(!r)return;seek((Math.max(0,Math.min(r.width,e.clientX-r.left))/r.width)*config().duration);};
   const track=$("track"); if(track){ track.addEventListener("pointerdown",e=>{window.timelineSeek(e);const move=ev=>window.timelineSeek(ev),up=()=>{removeEventListener("pointermove",move);removeEventListener("pointerup",up)};addEventListener("pointermove",move);addEventListener("pointerup",up);}); }
 
-  // Cloud renderer override: real submission, polling, artifact download, and clear failures.
+  // Public Studio renderer: the browser never handles a secret token.
   window.renderProject = async () => {
     if(!validate()) return;
     const c=config(); const format=$("format")?.value || "MP4 / H.264";
-    if(format !== "MP4 / H.264") { alert("Cloud rendering currently supports MP4 / H.264."); return; }
-    const token=localStorage.getItem("recast.renderToken") || prompt("Enter your reCast render token. It is stored only in this browser."); if(!token)return;
-    localStorage.setItem("recast.renderToken",token);
-    const source=projectHtml || $("preview")?.srcdoc; if(!source){alert("Create or open a composition first.");return;}
+    if(format !== "MP4 / H.264") return alert("Cloud rendering currently supports MP4 / H.264.");
+    const source=projectHtml || $("preview")?.srcdoc; if(!source)return alert("Create or open a composition first.");
     const btn=$("renderBtn"); if(btn)btn.disabled=true;
-    const api=async(path,options={})=>{const headers=new Headers(options.headers||{});headers.set("authorization",`Bearer ${token}`);if(options.body)headers.set("content-type","application/json");const res=await fetch(`${API}${path}`,{...options,headers});const text=await res.text();let data={};try{data=text?JSON.parse(text):{};}catch{data={error:text};}if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);return data;};
-    try{
-      status("Submitting render…"); log("Submitting deterministic MP4 render");
-      const job=await api("/v1/render",{method:"POST",body:JSON.stringify({html:source,config:{id:"studio",...c,render:{format:"mp4"},scenes,selectedScene}})});
-      log(`Render queued: ${job.jobId}`);
-      for(;;){await new Promise(r=>setTimeout(r,1200));const s=await api(`/v1/render/${encodeURIComponent(job.jobId)}`);if(s.status==="failed")throw new Error(s.error||"Render failed");status(s.status==="complete"?"Validating artifact…":`Rendering… ${Math.round(Number(s.progress)||0)}%`);if(s.status!=="complete")continue;const out=await api(`/v1/render/${encodeURIComponent(job.jobId)}/output`,{method:"GET"});void out;const response=await fetch(`${API}/v1/render/${encodeURIComponent(job.jobId)}/output`,{headers:{authorization:`Bearer ${token}`}});if(!response.ok)throw new Error(`Output download failed: HTTP ${response.status}`);const blob=await response.blob();if(!blob.size)throw new Error("Renderer returned an empty MP4");const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`reCast-${job.jobId}.mp4`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);status("Render complete");log(`MP4 downloaded · ${blob.size} bytes`);break;}
-    }catch(e){status("Render failed",true);log(`Render error: ${e.message}`);alert(`Cloud render failed:\n${e.message}`);}finally{if(btn)btn.disabled=false;}
+    const api=async(path,options={})=>{const headers=new Headers(options.headers||{});if(options.body)headers.set("content-type","application/json");const res=await fetch(`${API}${path}`,{...options,headers});const text=await res.text();let data={};try{data=text?JSON.parse(text):{};}catch{data={error:text};}if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);return data;};
+    try{status("Submitting render…");log("Submitting public Studio render");const job=await api("/v1/render",{method:"POST",body:JSON.stringify({html:source,config:{id:"studio",...c,render:{format:"mp4"},scenes,selectedScene}})});log(`Render queued: ${job.jobId}`);for(;;){await new Promise(r=>setTimeout(r,1200));const s=await api(`/v1/render/${encodeURIComponent(job.jobId)}`);if(s.status==="failed")throw new Error(s.error||"Render failed");status(s.status==="complete"?"Preparing MP4…":`Rendering… ${Math.round(Number(s.progress)||0)}%`);if(s.status!=="complete")continue;const response=await fetch(`${API}/v1/render/${encodeURIComponent(job.jobId)}/output`);if(!response.ok)throw new Error(`Output download failed: HTTP ${response.status}`);const blob=await response.blob();if(!blob.size)throw new Error("Renderer returned an empty MP4");const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`reCast-${job.jobId}.mp4`;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status("Render complete");log(`MP4 downloaded · ${blob.size} bytes`);break;}}catch(e){status("Render failed",true);log(`Render error: ${e.message}`);alert(`Cloud render failed:\n${e.message}`);}finally{if(btn)btn.disabled=false;}
   };
 
   window.addEventListener("message",e=>{if(e.data?.type==="recast:seek")seek(e.data.time);});
