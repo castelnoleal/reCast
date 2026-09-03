@@ -34,4 +34,4 @@ function togglePlayback(){if(playing){playing=false;updatePlay();setStatus('Paus
 function openScenes(){alert('Scenes: '+scenes.map((s,i)=>(i===selected?'• ':'')+s.name).join(' | '))}
 function openSettings(){const c=cfg();const value=prompt('Width, height, FPS, duration, playback rate',`${c.width}, ${c.height}, ${c.fps}, ${c.duration}, ${c.playbackRate}`);if(!value)return;const p=value.split(',').map(Number);if(p.length>=4){[$('w').value,$('h').value,$('fps').value,$('dur').value]=p.slice(0,4);if(p[4]>0)$('rate').value=p[4];checkProject()}}
 window.addEventListener('message',e=>{if(e.data?.type==='recast:request-html')e.source?.postMessage({type:'recast:html',html},'*')});$('preview').addEventListener('load',()=>{try{$('preview').contentWindow.postMessage({type:'recast:init',time:currentTime},'*')}catch{}});renderScenes();loadPreview(html);
-</script><script src="./studio-runtime.js"></script><script src="./studio-compat.js"></script><script src="./cloud-render.js"></script></body></html>
+</script><script src="./studio-runtime.js"></script><script src="./studio-compat.js"></script></body></html>
