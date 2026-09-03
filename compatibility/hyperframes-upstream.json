@@ -1,15 +1,15 @@
 {
   "upstream": "heygen-com/hyperframes",
   "branch": "main",
-  "commit": "c0887b650d433ecec39a2ea7efa0674b63b103fe",
-  "latest_release": "v0.8.24",
-  "release_commit": "c0887b650d433ecec39a2ea7efa0674b63b103fe",
-  "release_published_at": "2026-09-02T01:59:16Z",
-  "previous_baseline": "0e558d591658afcba59a84d53d75112b963a9f0a",
+  "commit": "19ab83f9294485bfe8bce1eab067c7727a335b95",
+  "latest_release": "v0.8.27",
+  "release_commit": "19ab83f9294485bfe8bce1eab067c7727a335b95",
+  "release_published_at": "2026-09-03T04:31:56Z",
+  "previous_baseline": "c0887b650d433ecec39a2ea7efa0674b63b103fe",
   "compatibility_changes": [
-    "HyperFrames v0.8.22 reports host-interrupted FFmpeg work as retryable rather than a terminal render failure; reCast preserves an explicit retryable failure field for compatible producer diagnostics.",
-    "HyperFrames v0.8.23 adds caption-zone overlap checks and safer timeline linting; these are authoring/lint surfaces and do not require a rendering-runtime change in reCast's current HTML-only Studio path.",
-    "HyperFrames v0.8.24 transports bounded extraction failure evidence across service boundaries without exposing signed URLs; reCast independently sanitizes render failure evidence by bounding text, redacting signed URL patterns, and retaining stage/code/message/retryable metadata.",
+    "HyperFrames v0.8.25 makes accepted agent edits explicit and applies them live across Studio preview, source, thumbnails, reloads, and Undo; reCast exposes a live-edit compatibility surface that preserves the current Studio state and reports the landed playhead.",
+    "HyperFrames v0.8.26 rebinds paused previews immediately after live edits so timed layers match the intended frame without requiring a scrub or reload; reCast independently reloads the preview and restores the deterministic landed time after a live edit.",
+    "HyperFrames v0.8.27 improves CLI capture diagnostics for missing referenced assets and selects the sharpest transparent favicon. reCast does not currently expose an equivalent capture command, so no unsupported CLI surface was added.",
     "The compatibility implementation mirrors documented behavior and interfaces only; no upstream implementation code is copied."
   ],
   "policy": "Track documented behavior and compatibility surfaces; do not copy upstream implementation code."
