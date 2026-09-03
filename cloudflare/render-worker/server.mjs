@@ -16,11 +16,6 @@ function json(res, status, body) {
   res.end(data);
 }
 
-function auth(req) {
-  const expected = req.headers["x-recast-token"];
-  return Boolean(expected && process.env.RECAST_CONTAINER_TOKEN && expected === process.env.RECAST_CONTAINER_TOKEN);
-}
-
 async function body(req, maxBytes) {
   const chunks = [];
   let size = 0;
@@ -100,8 +95,6 @@ async function renderJob(job) {
 
 const server = http.createServer(async (req, res) => {
   if (req.url === "/health") return json(res, 200, { ok: true, service: "reCast renderer" });
-  if (!auth(req)) return json(res, 401, { error: "Unauthorized" });
-
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
     if (req.method === "POST" && url.pathname === "/render") {
