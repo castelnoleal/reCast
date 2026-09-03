@@ -2,7 +2,6 @@ import { Container, getContainer } from "@cloudflare/containers";
 
 export interface Env {
   RECAST_RENDER: DurableObjectNamespace<RecastRenderContainer>;
-  RECAST_API_TOKEN?: string;
 }
 
 const ALLOWED_ORIGIN = "https://recast.castelmei.com";
@@ -14,13 +13,7 @@ export class RecastRenderContainer extends Container {
   envVars = {
     NODE_ENV: "production",
     PUPPETEER_EXECUTABLE_PATH: "/usr/bin/chromium",
-    RECAST_CONTAINER_TOKEN: ""
   };
-
-  constructor(ctx: DurableObjectState, env: Env) {
-    super(ctx as DurableObjectState<{}>, env);
-    this.envVars.RECAST_CONTAINER_TOKEN = env.RECAST_API_TOKEN ?? "";
-  }
 }
 
 function json(body: unknown, status = 200, extra: HeadersInit = {}) {
@@ -65,14 +58,10 @@ export default {
       });
     }
 
-    if (url.pathname === "/health") {
-      return json({ ok: true, service: "reCast render API", configured: Boolean(env.RECAST_API_TOKEN) });
-    }
-
-    const token = env.RECAST_API_TOKEN;
-    if (!token) return json({ error: "Render API is not configured" }, 503);
-    if (request.headers.get("authorization") !== `Bearer ${token}`) return unauthorized();
+    if (url.pathname === "/health") return json({ ok: true, service: "reCast render API", publicStudio: true });
     if (!url.pathname.startsWith("/v1/render")) return json({ error: "Not found" }, 404);
+    const origin = request.headers.get("origin");
+    if (origin && origin !== ALLOWED_ORIGIN) return json({ error: "Forbidden origin" }, 403);
 
     let jobId = url.pathname.match(/^\/v1\/render\/([^/]+)/)?.[1];
     if (request.method === "POST" && url.pathname === "/v1/render") {
@@ -80,7 +69,6 @@ export default {
       const container = getContainer(env.RECAST_RENDER, jobId);
       const forwarded = new Request(new URL("/render", request.url), request);
       forwarded.headers.set("x-recast-job-id", jobId);
-      forwarded.headers.set("x-recast-token", token);
       return cors(await container.fetch(forwarded));
     }
 
@@ -89,7 +77,7 @@ export default {
     const path = url.pathname.endsWith("/output") ? "/output" : "/status";
     const forwarded = new Request(new URL(path, request.url), {
       method: "GET",
-      headers: { "x-recast-token": token, "x-recast-job-id": jobId }
+      headers: { "x-recast-job-id": jobId }
     });
     return cors(await container.fetch(forwarded));
   }
