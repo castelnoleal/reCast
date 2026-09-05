@@ -1,15 +1,14 @@
 {
   "upstream": "heygen-com/hyperframes",
   "branch": "main",
-  "commit": "19ab83f9294485bfe8bce1eab067c7727a335b95",
-  "latest_release": "v0.8.27",
-  "release_commit": "19ab83f9294485bfe8bce1eab067c7727a335b95",
-  "release_published_at": "2026-09-03T04:31:56Z",
-  "previous_baseline": "c0887b650d433ecec39a2ea7efa0674b63b103fe",
+  "commit": "00c575d23b15d1da39eb37355a4760562270b4d0",
+  "latest_release": "v0.8.29",
+  "release_commit": "00c575d23b15d1da39eb37355a4760562270b4d0",
+  "release_published_at": "2026-09-05T01:56:17Z",
+  "previous_baseline": "19ab83f9294485bfe8bce1eab067c7727a335b95",
   "compatibility_changes": [
-    "HyperFrames v0.8.25 makes accepted agent edits explicit and applies them live across Studio preview, source, thumbnails, reloads, and Undo; reCast exposes a live-edit compatibility surface that preserves the current Studio state and reports the landed playhead.",
-    "HyperFrames v0.8.26 rebinds paused previews immediately after live edits so timed layers match the intended frame without requiring a scrub or reload; reCast independently reloads the preview and restores the deterministic landed time after a live edit.",
-    "HyperFrames v0.8.27 improves CLI capture diagnostics for missing referenced assets and selects the sharpest transparent favicon. reCast does not currently expose an equivalent capture command, so no unsupported CLI surface was added.",
+    "HyperFrames v0.8.28 adds snapshot comparison and stricter media-kind linting, plus rendering and capture fixes across assets, nested compositions, audio, fonts, playback rate, deterministic activation, and capture reliability. reCast's current independent CLI does not expose the matching snapshot or lint interfaces, so unsupported surfaces were not added during this synchronization.",
+    "HyperFrames v0.8.29 prevents Studio preview hangs during rapid external project-file rewrite bursts. reCast's browser Studio does not use an external file watcher or SSE rewrite pipeline, so the upstream race does not apply directly; the compatibility baseline records the behavior without copying upstream implementation code.",
     "The compatibility implementation mirrors documented behavior and interfaces only; no upstream implementation code is copied."
   ],
   "policy": "Track documented behavior and compatibility surfaces; do not copy upstream implementation code."
