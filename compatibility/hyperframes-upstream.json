@@ -1,15 +1,16 @@
 {
   "upstream": "heygen-com/hyperframes",
   "branch": "main",
-  "commit": "30d6f43bdb669af14be894d12985e9924db4a01a",
-  "latest_release": "v0.8.31",
-  "release_commit": "30d6f43bdb669af14be894d12985e9924db4a01a",
-  "release_published_at": "2026-09-07T16:17:07Z",
-  "previous_baseline": "3874990449b1802b264be89ab465255a39ed7f6b",
+  "commit": "3a7fcd10e036ff0f5837821bb1143ca529934fae",
+  "latest_release": "v0.8.33",
+  "release_commit": "3a7fcd10e036ff0f5837821bb1143ca529934fae",
+  "release_published_at": "2026-09-09T02:17:23Z",
+  "previous_baseline": "30d6f43bdb669af14be894d12985e9924db4a01a",
   "compatibility_changes": [
-    "HyperFrames v0.8.31 adds lint detection for video or image sources that point to audio files. reCast does not currently expose HyperFrames-compatible lint or check commands, so no unsupported CLI surface was added.",
-    "HyperFrames v0.8.31 streams Studio preview media byte ranges rather than reading entire media files and includes related Windows stream bridging and atomic waveform-cache publication. reCast's browser-hosted Studio does not run the corresponding local Studio preview server or waveform-cache architecture, so no equivalent implementation change is required for an exposed compatibility interface.",
-    "HyperFrames v0.8.31 refines lint/check diagnostics for grouped animation staging, displayed code, overlap/occlusion deduplication, partial motion specifications, and checked project descriptors. These are internal diagnostic semantics outside reCast's currently exposed independent interfaces.",
+    "HyperFrames v0.8.32 adds six animation-oriented lint/check rules, capture-stall recovery, runtime-media-source probing, nested media start-coordinate normalization, fractional final-frame preservation, safer media staging, and additional Studio/player hardening. reCast independently preserves deterministic frame/time rendering and bounded render validation, but does not expose the upstream lint/check, local Studio preview server, or player implementation surfaces, so those internal diagnostics are not copied.",
+    "HyperFrames v0.8.32 rejects unsupported encoder/rate combinations and isolates verification seeks. reCast continues to validate deterministic frame counts and artifact duration independently; unsupported upstream encoder-specific CLI behavior is not exposed by the current reCast CLI.",
+    "HyperFrames v0.8.33 changes static-frame deduplication so timelines with onUpdate-driven motion are excluded from static prediction and callback-driven motion remains visible during verification seeks. This is directly relevant to deterministic rendering semantics. reCast does not currently implement static-frame prediction/deduplication or an onUpdate timeline abstraction, so no speculative compatibility API was added.",
+    "HyperFrames main after v0.8.31 also adds a registry/catalog family of image-carousel blocks and optional hosted asset URLs. reCast does not currently expose a registry/catalog installer or catalog payload format, so these additions are recorded as upstream behavior rather than copied into an unsupported surface.",
     "The compatibility implementation mirrors documented behavior and interfaces only; no upstream implementation code is copied."
   ],
   "policy": "Track documented behavior and compatibility surfaces; do not copy upstream implementation code."
