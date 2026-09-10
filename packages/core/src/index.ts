@@ -25,10 +25,6 @@ export interface RenderFailureEvidence {
 
 const SIGNED_URL = /https?:\/\/[^\s"']+(?:[?&](?:X-Amz-|Signature=|token=|sig=)|[?&](?:Expires=|Policy=))/gi;
 
-/**
- * Mirrors the producer compatibility contract: keep useful extraction evidence,
- * but never leak signed URLs or unbounded diagnostics across a service boundary.
- */
 export function sanitizeRenderFailureEvidence(input: unknown, maxLength = 1024): RenderFailureEvidence {
   const source = input && typeof input === "object" ? input as Record<string, unknown> : { message: String(input ?? "") };
   const clean = (value: unknown) => {
@@ -77,6 +73,19 @@ export function easeInOut(progress: number): number {
   const p = Math.min(1, Math.max(0, progress));
   return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
 }
+
+/**
+ * Resolve a media clip start against its composition/scene parent. A clip may
+ * explicitly mark its start as already absolute; otherwise the local start is
+ * offset by the parent start. Keeping this in one pure function prevents
+ * timeline, visibility, playback and audio paths from disagreeing about a
+ * nested clip's coordinate system.
+ */
+export function resolveMediaStart(localStart = 0, parentStart = 0, absolute = false): number {
+  if (![localStart, parentStart].every(Number.isFinite)) throw new Error("media starts must be finite numbers");
+  return absolute ? localStart : parentStart + localStart;
+}
+
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>\"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '\"': "&quot;", "'": "&#39;" }[c]!));
 }
