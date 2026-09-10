@@ -1,0 +1,33 @@
+name: Studio browser E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ui/**'
+      - 'test/studio.e2e.mjs'
+      - '.github/workflows/studio-e2e.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  studio-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - name: Install Playwright
+        run: npm install --no-save playwright@1.55.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run Studio E2E
+        run: npx playwright test test/studio.e2e.mjs --reporter=line
