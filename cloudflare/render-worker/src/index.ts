@@ -5,6 +5,7 @@ export interface Env {
 }
 
 const ALLOWED_ORIGIN = "https://recast.castelmei.com";
+const API_VERSION = "public-studio-v1";
 
 export class RecastRenderContainer extends Container {
   defaultPort = 8080;
@@ -23,22 +24,21 @@ function json(body: unknown, status = 200, extra: HeadersInit = {}) {
       "content-type": "application/json; charset=utf-8",
       "access-control-allow-origin": ALLOWED_ORIGIN,
       "access-control-allow-methods": "GET,POST,OPTIONS",
-      "access-control-allow-headers": "authorization,content-type",
+      "access-control-allow-headers": "content-type",
       "cache-control": "no-store",
+      "x-recast-api-version": API_VERSION,
       ...extra
     }
   });
-}
-
-function unauthorized() {
-  return json({ error: "Unauthorized" }, 401);
 }
 
 function cors(response: Response) {
   const headers = new Headers(response.headers);
   headers.set("access-control-allow-origin", ALLOWED_ORIGIN);
   headers.set("access-control-allow-methods", "GET,POST,OPTIONS");
-  headers.set("access-control-allow-headers", "authorization,content-type");
+  headers.set("access-control-allow-headers", "content-type");
+  headers.set("cache-control", "no-store");
+  headers.set("x-recast-api-version", API_VERSION);
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
@@ -52,13 +52,14 @@ export default {
         headers: {
           "access-control-allow-origin": ALLOWED_ORIGIN,
           "access-control-allow-methods": "GET,POST,OPTIONS",
-          "access-control-allow-headers": "authorization,content-type",
-          "access-control-max-age": "86400"
+          "access-control-allow-headers": "content-type",
+          "access-control-max-age": "86400",
+          "x-recast-api-version": API_VERSION
         }
       });
     }
 
-    if (url.pathname === "/health") return json({ ok: true, service: "reCast render API", publicStudio: true });
+    if (url.pathname === "/health") return json({ ok: true, service: "reCast render API", publicStudio: true, version: API_VERSION });
     if (!url.pathname.startsWith("/v1/render")) return json({ error: "Not found" }, 404);
     const origin = request.headers.get("origin");
     if (origin && origin !== ALLOWED_ORIGIN) return json({ error: "Forbidden origin" }, 403);
