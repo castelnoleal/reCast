@@ -94,3 +94,5 @@ export function injectRuntime(html: string, frame: number, fps: number, playback
   const runtime = `<script>window.__reCast={frame:${Math.floor(frame)},fps:${fps},time:${time},playbackRate:${validatePlaybackRate(playbackRate)}};<\/script>`;
   return html.includes("</head>") ? html.replace("</head>", runtime + "</head>") : runtime + html;
 }
+
+export { detectSwallowedElement, hasUnquotedLessThan } from "./html-lint.js";
