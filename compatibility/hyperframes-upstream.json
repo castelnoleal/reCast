@@ -4,19 +4,6 @@
   "commit": "51a88b95660c5f67e66e9c5977226f6ae7b31255",
   "latest_release": "v0.8.35",
   "release_published_at": "2026-09-11T21:40:01Z",
-  "checked_at": "2026-09-12T05:15:35+08:00",
-  "policy": "Track documented behavior and compatibility surfaces; do not copy upstream implementation code.",
-  "release_assessment": {
-    "applicable": [
-      "The v0.8.35 malformed-tag lint behavior is already independently implemented and covered by reCast tests from the previous synchronization.",
-      "The v0.8.35 image pixel-hash carve-out is not applicable because reCast does not expose HyperFrames' capture-hash CLI surface.",
-      "The v0.8.35 .hyperframesignore negation behavior is not applicable because reCast does not implement that ignore-file interface.",
-      "The v0.8.35 Studio WebMCP execute compatibility behavior is not applicable because reCast Studio does not expose that WebMCP interface.",
-      "The v0.8.35 macOS multi-worker frame-streaming fix is not applicable to reCast's current Cloudflare/container rendering architecture.",
-      "The v0.8.35 BGM voice-carve defaults and loop-extension MP3 behavior are not applicable because reCast has no corresponding local voice/music pipeline.",
-      "The v0.8.35 HYPERFRAMES_PYTHON doctor warning is not applicable because reCast has no HyperFrames Python/TTS/BGM environment override.",
-      "The v0.8.35 --layout strip wording change is not applicable because reCast does not expose that HyperFrames CLI option."
-    ],
-    "implementation_action": "No new implementation change required; update the compatibility snapshot to the current upstream release and revision."
-  }
+  "checked_at": "2026-09-12T08:40:21.102Z",
+  "policy": "Track documented behavior and compatibility surfaces; do not copy upstream implementation code."
 }
