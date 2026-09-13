@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'ui/**'
-      - 'test/studio.e2e.mjs'
+      - 'test/studio.e2e.test.mjs'
       - '.github/workflows/studio-e2e.yml'
       - 'package.json'
       - 'package-lock.json'
@@ -29,4 +29,4 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run Studio E2E
-        run: npx playwright test test/studio.e2e.mjs --reporter=line
+        run: npx playwright test test/studio.e2e.test.mjs --reporter=line
