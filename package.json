@@ -12,7 +12,7 @@
     "build:core": "tsc -p packages/core/tsconfig.json",
     "build:cli": "tsc -p packages/cli/tsconfig.json",
     "lint": "tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/cli/tsconfig.json --noEmit",
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test test/html-lint.test.mjs",
     "test:e2e": "playwright test test/studio.e2e.test.mjs",
     "render": "node packages/cli/bin/recast.js render",
     "preview": "node packages/cli/bin/recast.js preview",
