@@ -47,16 +47,20 @@ test("Studio boots without console errors", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("core Studio controls work", async ({ page }) => {
+test("core Studio controls work and pause freezes preview animations", async ({ page }) => {
   await page.goto(`${baseURL}/index.html`);
   await page.getByRole("button", { name: "Check" }).click();
   await expect(page.locator("#status")).toHaveText("Composition valid");
 
   await page.getByRole("button", { name: "Play" }).click();
   await expect(page.locator("#status")).toHaveText("Playing");
-  await page.waitForTimeout(100);
+  await page.waitForTimeout(150);
   await page.getByRole("button", { name: /Pause/ }).click();
   await expect(page.locator("#status")).toHaveText("Paused");
+  const pausedAnimationTime = await page.locator("#preview").evaluate(frame => frame.contentDocument?.getAnimations?.()[0]?.currentTime);
+  await page.waitForTimeout(150);
+  const stillAnimationTime = await page.locator("#preview").evaluate(frame => frame.contentDocument?.getAnimations?.()[0]?.currentTime);
+  expect(Number(stillAnimationTime)).toBeCloseTo(Number(pausedAnimationTime), 1);
 
   await page.getByRole("button", { name: "↶" }).click();
   await expect(page.locator("#time")).toHaveText("0.00s");

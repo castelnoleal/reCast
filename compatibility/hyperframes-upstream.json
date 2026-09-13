@@ -1,9 +1,21 @@
 {
   "upstream": "heygen-com/hyperframes",
   "branch": "main",
-  "commit": "51a88b95660c5f67e66e9c5977226f6ae7b31255",
-  "latest_release": "v0.8.35",
-  "release_published_at": "2026-09-11T21:40:01Z",
-  "checked_at": "2026-09-12T08:40:21.102Z",
-  "policy": "Track documented behavior and compatibility surfaces; do not copy upstream implementation code."
+  "commit": "fdf9ffac953d9d18329907d6956faa58c73ad489",
+  "latest_release": "v0.8.36",
+  "release_published_at": "2026-09-12T17:06:54Z",
+  "checked_at": "2026-09-13T13:14:19+08:00",
+  "policy": "Track documented behavior and compatibility surfaces; do not copy upstream implementation code.",
+  "release_assessment": {
+    "applicable": [
+      "v0.8.36 Studio pause behavior requires the preview to remain visually still; reCast now pauses animations and media in the same-origin preview when Studio playback pauses, rewinds, or completes.",
+      "v0.8.36 Studio edit behavior is already compatible because reCast updates the existing srcdoc preview rather than reloading the preview iframe for each control/edit operation.",
+      "v0.8.36 native VP9/AV1 opening behavior is not directly applicable because reCast Studio does not perform a browser-video transcoding/prewarm pipeline when opening projects.",
+      "v0.8.36 studio-server identifyFileWrite rename is not applicable because reCast does not expose the HyperFrames studio-server receipt API.",
+      "v0.8.36 BROWSER_HOSTILE_CODECS object contract is not applicable because reCast does not expose that studio-server codec registry interface.",
+      "The 2026-09-13 upstream nested-sibling video layout fix is not directly applicable because reCast does not implement HyperFrames' sub-composition layout/visibility engine; its renderer captures the supplied DOM directly.",
+      "Catalog-only changes are not applicable to reCast runtime compatibility."
+    ],
+    "implementation_action": "Independently mirror the applicable Studio pause semantics and add an end-to-end regression assertion; update the compatibility snapshot to the current upstream revision and release."
+  }
 }
