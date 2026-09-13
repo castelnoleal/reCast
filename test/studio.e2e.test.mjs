@@ -50,7 +50,7 @@ test("Studio boots without console errors", async ({ page }) => {
 test("core Studio controls work and pause freezes preview animations", async ({ page }) => {
   await page.goto(`${baseURL}/index.html`);
   await page.getByRole("button", { name: "Check" }).click();
-  await expect(page.locator("#status")).toHaveText("Composition valid");
+  await expect(page.locator("#status")).toHaveText("Valid · 150 frames");
 
   await page.getByRole("button", { name: "Play" }).click();
   await expect(page.locator("#status")).toHaveText("Playing");
@@ -83,7 +83,7 @@ test("HTML open and save flows work", async ({ page }) => {
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Save HTML" }).click();
   const file = await download;
-  expect(file.suggestedFilename()).toBe("test.html");
+  expect(file.suggestedFilename()).toBe("test.recast");
 });
 
 test("Render MP4 never asks for a token and completes through the public API contract", async ({ page }) => {
