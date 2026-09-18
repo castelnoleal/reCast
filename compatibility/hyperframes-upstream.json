@@ -1,9 +1,9 @@
 {
   "upstream": "heygen-com/hyperframes",
   "branch": "main",
-  "commit": "a8a9fdb0fe88d97c99d7bd30da94e64dd0a96f3d",
-  "latest_release": "v0.8.46",
-  "release_published_at": "2026-09-17T05:52:44Z",
-  "checked_at": "2026-09-17T09:29:19.861Z",
+  "commit": "bf39a727876eb4529584c836e66a0c7cd571c399",
+  "latest_release": "v0.8.47",
+  "release_published_at": "2026-09-18T08:15:54Z",
+  "checked_at": "2026-09-18T09:02:48.146Z",
   "policy": "Track documented behavior and compatibility surfaces; do not copy upstream implementation code."
 }
